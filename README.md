@@ -1,8 +1,13 @@
 # Hi.C a Hi-C pipeline written in C
 
-## Compilation
+## Index
+### 1. Download and compilation
+### 2. Usage
+### 3. Example
 
-Compile directly using make:
+## 1. Download and compilation
+
+Clone from this repository using `git`. Compile directly using make:
 ```bash
 $ git clone http://github.com/ezorita/Hi.C.git
 $ cd Hi.C
@@ -14,7 +19,7 @@ This will generate three binaries:
 - `parse_contacts`: reads mapped files and finds valid Hi-C contact pairs.
 - `merge_contacts`: simplifies the output files of `parse_contacts`.
 
-## Usage
+## 2. Usage
 
 ### Mapping
 
@@ -69,13 +74,13 @@ Running `parse_contacts` will print in the standard output all the valid contact
 | 4        | 1    | Strand (0:forward/1:reverse) |
 | 5        | 1    | Length mapped                |
 | 6        | 1    | Upstream RE site position    |
-| 7        | 1    | Downstram RE site position   |
+| 7        | 1    | Downstream RE site position  |
 | 8        | 2    | Chromosome                   |
 | 9        | 2    | Mapping locus                |
 | 10       | 2    | Strand (0:forward/1:reverse) |
 | 11       | 2    | Length mapped                |
 | 12       | 2    | Upstream RE site position    |
-| 13       | 2    | Downstram RE site position   |
+| 13       | 2    | Downstream RE site position  |
 
 
 ### Compacting the contacts
@@ -112,7 +117,7 @@ The output produced by `merge_contacts` is similar to a bed file. The first 6 co
 | 6        | Last nucleotide of fragment 2           |
 | 7        | Contact count between fragments 1 and 2 |
 
-## Example
+## 3. Example
 
 ### Introduction
 
@@ -123,28 +128,27 @@ The output produced by `merge_contacts` is similar to a bed file. The first 6 co
 > Also assume that we have the human genome reference file and its bwa index in `/genomes/hg/genome.fasta`.
 
 ### Processing steps
-1. Make a digestion reference of MboI for human genome.
-  1. Create the digestion database.
+#### 1. Make a digestion reference of MboI for human genome.
 ```bash
+# Create the digestion database.
 $ mkdir -p db/hg
 $ ln -s /genomes/hg/genome.fasta db/hg/genome.fasta
-```
-  2. Digest the human genome with MboI (GATC, overhang: GATC)
-```bash
+
+# Digest the human genome with MboI (GATC, 5' overhang: GATC)
 $ ./re_digest hg MboI GATC 0 4
 ```
 
-2. Map the sequencing reads using `bwa`:
+#### 2. Map the sequencing reads using `bwa`:
 ```bash
 $ bwa mem -P -k17 -U0 -L0,0 -T25 /genomes/hg/genome.fasta hic-read1.fastq.gz hic-read2.fastq.gz | samtools view -bS > hic-mapped.bam
 ```
 
-3. Parse contacts from mapping file and sort the output:
+#### 3. Parse contacts from mapping file and sort the output:
 ```bash
 $ ./parse_contacts hg MboI <(samtools view hic-mapped.bam) | sort -k2,2 -k8,8 -k6,6n -k12,12n > contacts_sorted.out
 ```
 
-4. Merge contacts:
+#### 4. Merge contacts:
 ```bash
 $ ./merge_contacts contacts_sorted.out > fragment_contacts.out
 ```
