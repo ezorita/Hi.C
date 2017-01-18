@@ -29,7 +29,7 @@ $ bwa mem -P -k17 -U0 -L0,0 -T25 genome_index.fasta HiC-read1.fastq.gz HiC-read2
 Before finding the contacts we need to precompute the fragments produced by the restriction enzyme used in Hi-C. To do so, run `re_digest` as follows:
 
 ```bash
-$ ./re_digest [organism name] [RE name] [RE sequence] [cut fw] [cut rv]
+$ re_digest [organism name] [RE name] [RE sequence] [cut fw] [cut rv]
 ```
 
 All arguments are mandatory:
@@ -111,3 +111,40 @@ The output produced by `merge_contacts` is similar to a bed file. The first 6 co
 | 5        | First nucleotide of fragment 2          |
 | 6        | Last nucleotide of fragment 2           |
 | 7        | Contact count between fragments 1 and 2 |
+
+## Example
+
+### Introduction
+
+> In this example we will process Hi-C data from human cells. The restriction enzyme used during the experiment is MboI. The DNA was sequenced in an Illumina platform using 75nt paired-end reads.
+
+### Files and paths
+> Assume that we have our precious paired-end reads in two files called `hic-read1.fastq.gz` and `hic-read2.fastq.gz` in the same folder as our compiled binaries `re_digest`, `parse_contacts` and `merge_contacts`.
+> Also assume that we have the human genome reference file and its bwa index in `/genomes/hg/genome.fasta`.
+
+### Processing steps
+1. Make a digestion reference of MboI for human genome.
+  1. Create the digestion database.
+```bash
+$ mkdir -p db/hg
+$ ln -s /genomes/hg/genome.fasta db/hg/genome.fasta
+```
+  2. Digest the human genome with MboI (GATC, overhang: GATC)
+```bash
+$ ./re_digest hg MboI GATC 0 4
+```
+
+2. Map the sequencing reads using `bwa`:
+```bash
+$ bwa mem -P -k17 -U0 -L0,0 -T25 /genomes/hg/genome.fasta hic-read1.fastq.gz hic-read2.fastq.gz | samtools view -bS > hic-mapped.bam
+```
+
+3. Parse contacts from mapping file and sort the output:
+```bash
+$ ./parse_contacts hg MboI <(samtools view hic-mapped.bam) | sort -k2,2 -k8,8 -k6,6n -k12,12n > contacts_sorted.out
+```
+
+4. Merge contacts:
+```bash
+$ ./merge_contacts contacts_sorted.out > fragment_contacts.out
+```
