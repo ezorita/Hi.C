@@ -1,9 +1,9 @@
 # Hi.C a Hi-C pipeline written in C
 
 ## Index
-[1. Download and compilation](#1-download-and-compilation)
-[2. Usage](#2-usage)
-[3. Example](#3-example)
+[1. Download and compilation](#1-download-and-compilation)  
+[2. Usage](#2-usage)  
+[3. Example](#3-example)  
 
 ## 1. Download and compilation
 
