@@ -1,9 +1,9 @@
 # Hi.C a Hi-C pipeline written in C
 
 ## Index
-### 1. Download and compilation
-### 2. Usage
-### 3. Example
+1. Download and compilation
+2. Usage
+3. Example
 
 ## 1. Download and compilation
 
@@ -21,7 +21,7 @@ This will generate three binaries:
 
 ## 2. Usage
 
-### Mapping
+### 2.1. Mapping
 
 For mapping, we use [bwa](https://github.com/lh3/bwa) with the following parameters (for hg19, Illumina 75bp PE):
 
@@ -29,7 +29,7 @@ For mapping, we use [bwa](https://github.com/lh3/bwa) with the following paramet
 $ bwa mem -P -k17 -U0 -L0,0 -T25 genome_index.fasta HiC-read1.fastq.gz HiC-read2.fastq.gz | samtools view -bS > HiC-mapped.bam
 ```
 
-### Digesting the genome
+### 2.2. Digesting the genome
 
 Before finding the contacts we need to precompute the fragments produced by the restriction enzyme used in Hi-C. To do so, run `re_digest` as follows:
 
@@ -43,7 +43,7 @@ All arguments are mandatory:
 - **RE sequence**: The target sequence of the restriction enzyme, e.g. `GATC` (MboI, DpnII), GAATTC (EcoRI)...
 - **cut fw/cut rv**: Cutting sites at the forward/reverse strand, from the first 5' nucleotide of the RE sequence. For instance, EcoRI produces a cut such that G'AATT,C (AATT overhang), so cut fw=1, cut rv=5.
 
-### Finding contacts
+### 2.3. Finding contacts
 
 #### Usage
 
@@ -83,7 +83,7 @@ Running `parse_contacts` will print in the standard output all the valid contact
 | 13       | 2    | Downstream RE site position  |
 
 
-### Compacting the contacts
+### 2.4. Compacting the contacts
 
 #### Sorting the output file
 In this step we will merge the contact pairs into pairs of RE fragments. However, first we need to sort the output file of `parse_contacts` with the following keys (GNU sort) `-k2,2 -k8,8 -k6,6n -k12,12n`, e.g.:
