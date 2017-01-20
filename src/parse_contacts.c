@@ -118,6 +118,8 @@ long single_read   = 0;
 long unmapped      = 0;
 long repeats       = 0;
 long self_filter   = 0;
+long dangling      = 0;
+long unknown       = 0;
 long insert_filter = 0;
 
 
@@ -201,12 +203,15 @@ int main(int argc, char *argv[])
    } while (bytes > 0);
 
    fprintf(stderr, "ok\n\nValid pairs:            \t%ld\n", valid);
-   fprintf(stderr, "Invalid pairs:          \t%ld\n",insert_filter+self_filter+single_read+unmapped+repeats);
-   fprintf(stderr, " - Unmapped:            \t%ld\n", unmapped);
-   fprintf(stderr, " - One read mapped:     \t%ld\n", single_read);
+   fprintf(stderr, "Invalid pairs:          \t%ld\n", 
+           insert_filter+self_filter+single_read+unmapped+repeats+dangling+unknown);
    fprintf(stderr, " - Repeats:             \t%ld\n", repeats);
+   fprintf(stderr, " - Dangling ends:       \t%ld\n", dangling);
    fprintf(stderr, " - Self ligated:        \t%ld\n", self_filter);
+   fprintf(stderr, " - One read mapped:     \t%ld\n", single_read);
+   fprintf(stderr, " - Unmapped:            \t%ld\n", unmapped);
    fprintf(stderr, " - Insert size (>%dbp):\t%ld\n", max_insz, insert_filter);
+   fprintf(stderr, " - Unknown event:       \t%ld\n", unknown);
    free(stack);
    free(sam);
 
@@ -306,15 +311,11 @@ parse_contact
       insert_filter++;
       goto free_and_return;
    }
-
-   if (mf->pos == 1) {
-      self_filter++;
-      goto free_and_return;
-   }
    
    // Output contacts.
    for (int i = 0; i < mf->pos-1; i++) {
       for (int j = i+1; j < mf->pos; j++) {
+         valid++;
          map_t m1 = mf->map[i];
          map_t m2 = mf->map[j];
          int chrcmp = strcmp(m1.chr, m2.chr);
@@ -337,7 +338,6 @@ parse_contact
                  m2.beg_frag,
                  m2.end_frag
                  );
-      valid++;
       }
    }
 
@@ -365,19 +365,33 @@ find_pe_contacts
 
    int inner_merged = 0;
    int outer_merged = 0;
+   int self_ligation = 0;
+   int unknown_event = 0;
    if (fw->pos && rv->pos) {
       int multi_map = (fw->pos > 1) && (rv->pos > 1);
       int check_outer_loop = 0;
       // Check inner loop.
       map_t ifw = fw->map[fw->pos-1];
       map_t irv = rv->map[rv->pos-1];
-      if (ifw.frag_id == irv.frag_id && ifw.rc != irv.rc) {
-         ifw.beg_ref = min(ifw.beg_ref, irv.beg_ref);
-         ifw.end_ref = max(ifw.end_ref, irv.end_ref);
-         ifw.mapq    = max(ifw.mapq, irv.mapq);
-         insert_size = ifw.end_ref - ifw.beg_ref + 1;
-         map_push(ifw, dst);
-         inner_merged = 1;
+      if (ifw.frag_id == irv.frag_id) {
+         if (ifw.rc != irv.rc) {
+            // Check whether fragment is contiguous or self-ligated.
+            if ((ifw.rc && (ifw.end_ref < irv.beg_ref)) || (irv.rc && (ifw.beg_ref > irv.end_ref)))
+               self_ligation = 1;
+            // Merge fragments.
+            ifw.beg_ref = min(ifw.beg_ref, irv.beg_ref);
+            ifw.end_ref = max(ifw.end_ref, irv.end_ref);
+            ifw.mapq    = max(ifw.mapq, irv.mapq);
+            insert_size = ifw.end_ref - ifw.beg_ref + 1;
+            map_push(ifw, dst);
+            inner_merged = 1;
+         } else {
+            // What is this? Same fragment sequenced in the same direction?
+            // This would require two exactly equal molecules or a broken
+            // molecule that flipped and ligated to itself --> classify as 
+            // 'unknown'.
+            unknown_event = 1;
+         }
       } else {
          check_outer_loop = 1;
          // Compute insert size by sum of fragments.
@@ -412,9 +426,6 @@ find_pe_contacts
          }
       }
    }
-   if (!inner_merged) {
-      
-   }
    // Add other fragments.
    mapstack_t * tmp = new_mapstack(fw->pos+rv->pos);
    int beg = (outer_merged ? 1 : 0);
@@ -440,6 +451,17 @@ find_pe_contacts
       }
       if (add)
          map_push(tmp->map[i], dst);
+   }
+
+   if ((*dst)->pos == 1) {
+      if (self_ligation)
+         self_filter++;
+      else if (unknown_event)
+         unknown++;
+      else if (inner_merged)
+         dangling++;
+      else
+         single_read++;
    }
 
    free(tmp);
