@@ -11,6 +11,10 @@
 #include <libgen.h>
 #include <ctype.h>
 
+#define    HIC_FORMAT 1
+#define COOLER_FORMAT 2
+
+#define FORMAT HIC_FORMAT
 
 #define MIN_SCORE 10
 #define HASH_SIZE 2048
@@ -323,6 +327,30 @@ parse_contact
             m2 = mf->map[i];
             m1 = mf->map[j];
          }
+#if FORMAT == HIC_FORMAT
+         fprintf(stdout, "%s %d %s %ld %d %d %s %ld %d %d %d\n",
+                 stack->buf[0]->seqname,
+                 m1.rc ? 1 : 0,
+                 m1.chr,
+                 m1.beg_ref,
+                 m1.frag_id,
+                 m2.rc ? 1 : 0,
+                 m2.chr,
+                 m2.beg_ref,
+                 m2.frag_id,
+                 m1.mapq,
+                 m2.mapq
+                 );
+#elif FORMAT == COOLER_FORMAT
+         fprintf(stdout, "%s\t%ld\t%s\t%s\t%ld\t%s\n",
+                 m1.chr,
+                 m1.beg_ref,
+                 m1.rc ? "-" : "+",
+                 m2.chr,
+                 m2.beg_ref,
+                 m2.rc ? "-" : "+"
+                 );
+#else
          fprintf(stdout, "%s\t%s\t%ld\t%d\t%ld\t%ld\t%ld\t%s\t%ld\t%d\t%ld\t%ld\t%ld\n",
                  stack->buf[0]->seqname,
                  m1.chr,
@@ -338,6 +366,8 @@ parse_contact
                  m2.beg_frag,
                  m2.end_frag
                  );
+#endif
+
       }
    }
 
