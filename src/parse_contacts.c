@@ -515,11 +515,9 @@ place_in_read
       for (int j = 0; j < dst->pos; j++) {
          map_t old = dst->map[j];
          // Compute overlap.
-         int overlap = 0;
-         if (old.beg_read < new.beg_read)
-            overlap = max(overlap,old.end_read - new.beg_read);
-         if (new.end_read < old.end_read)
-            overlap += max(overlap,new.end_read - old.beg_read);
+         int beg = max(old.beg_read, new.beg_read);
+         int end = min(old.end_read, new.end_read);
+         int overlap = max(0,end-beg+1);         
          if (overlap > MAX_OVERLAP) {
             insert = 0;
             break;
