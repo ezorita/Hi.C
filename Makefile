@@ -9,7 +9,7 @@ SRC_MERGE    = $(addprefix $(SRC_DIR), $(C_MERGE))
 FLAGS = -std=c99 -O3
 #FLAGS = -std=c99 -g
 
-all: re_digest parse_contacts
+all: re_digest parse_contacts merge_contacts
 
 re_digest: $(SRC_DIGEST)
 	gcc $(FLAGS) $(SRC_DIGEST) -o $@
